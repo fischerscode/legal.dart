@@ -1,0 +1,22 @@
+name: Publish
+on:
+  push:
+    # Historical bootstrap release is published manually once.
+    tags: ['v*', '!v0.1.0']
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'fischerscode/legal.dart'
+    uses: ./.github/workflows/verify.yml
+    with:
+      release-tag: ${{ github.ref_name }}
+  publish:
+    needs: verify
+    if: github.repository == 'fischerscode/legal.dart'
+    permissions:
+      contents: read
+      id-token: write
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@92cfcc5b56b5f03d4418281fd5b0ae0dacbfd9fa
+    with:
+      environment: pub.dev

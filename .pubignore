@@ -1,0 +1,12 @@
+.github/
+.githooks/
+test/
+tool/
+coverage/
+THIRD_PARTY_LICENSES.txt
+pubspec.lock
+
+doc/api/
+
+.idea/
+*.iml

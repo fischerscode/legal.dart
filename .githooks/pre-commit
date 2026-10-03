@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+dart format --output=none --set-exit-if-changed .
+dart analyze --fatal-infos

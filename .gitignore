@@ -1,0 +1,10 @@
+.dart_tool/
+build/
+coverage/
+THIRD_PARTY_LICENSES.txt
+pubspec_overrides.yaml
+
+doc/api/
+
+.idea/
+*.iml

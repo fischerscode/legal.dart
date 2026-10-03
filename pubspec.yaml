@@ -1,0 +1,46 @@
+name: legal
+description: Offline third-party license inventory, SPDX policy checks, and deterministic license notices for Dart applications.
+version: 0.1.0
+repository: https://github.com/fischerscode/legal.dart
+issue_tracker: https://github.com/fischerscode/legal.dart/issues
+topics:
+  - licenses
+  - cli
+  - compliance
+  - spdx
+environment:
+  sdk: ^3.13.0
+dependencies:
+  args: ^2.7.0
+  path: ^1.9.1
+  pub_semver: ^2.2.0
+  yaml: ^3.1.3
+dev_dependencies:
+  lints: ^6.1.0
+  melos: ^8.9.0
+  test: ^1.31.1
+executables:
+  legal:
+workspace: []
+melos:
+  useRootAsPackage: true
+  ide:
+    intellij:
+      enabled: false
+  command:
+    version:
+      branch: main
+      workspaceChangelog: false
+      updateChangelog: true
+      gitTagVersion: true
+      gitCommitVersion: true
+      fetchTags: false
+      message: 'chore(release): publish legal'
+  scripts:
+    analyze: dart analyze --fatal-infos
+    test: dart test
+    format: dart format .
+    check: dart run tool/check.dart
+legal:
+  policy: permissive
+  unknown: deny

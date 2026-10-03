@@ -1,0 +1,29 @@
+THIRD-PARTY SOFTWARE LICENSES
+
+This product includes third-party software.
+
+===============================================================================
+alpha 1.2.3
+License: MIT
+Dependency source: path
+===============================================================================
+
+--- LICENSE ---
+
+Original terms
+
+===============================================================================
+beta 2.0.0
+License: Apache-2.0
+Dependency source: hosted
+Source: https://pub.dev/packages/beta
+===============================================================================
+
+--- LICENSE ---
+
+Original second license without newline
+
+--- NOTICE ---
+
+Copyright 2026 ACME
+Attribution

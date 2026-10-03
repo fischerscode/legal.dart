@@ -1,0 +1,5 @@
+name: shared
+version: 1.2.3
+publish_to: none
+environment:
+  sdk: ^3.13.0

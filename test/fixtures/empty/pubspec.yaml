@@ -1,0 +1,6 @@
+name: fixture_empty
+publish_to: none
+environment:
+  sdk: ^3.13.0
+legal:
+  policy: permissive

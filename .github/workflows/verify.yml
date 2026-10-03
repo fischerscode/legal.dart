@@ -1,0 +1,38 @@
+name: Verify package
+on:
+  workflow_call:
+    inputs:
+      release-tag:
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - uses: dart-lang/setup-dart@92cfcc5b56b5f03d4418281fd5b0ae0dacbfd9fa
+        with:
+          sdk: stable
+      - run: dart pub get --enforce-lockfile
+      - name: Validate release tag
+        if: inputs.release-tag != ''
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: dart run tool/validate_release.dart "$RELEASE_TAG"
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart analyze --fatal-infos
+      - run: dart test
+      - name: Dogfood and verify deterministic notices
+        run: |
+          dart run legal list
+          dart run legal check
+          dart run legal generate
+          cp THIRD_PARTY_LICENSES.txt /tmp/legal-notices-first.txt
+          dart run legal generate
+          cmp THIRD_PARTY_LICENSES.txt /tmp/legal-notices-first.txt
+      - run: dart doc
+      - run: dart pub publish --dry-run

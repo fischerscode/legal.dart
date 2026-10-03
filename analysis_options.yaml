@@ -1,0 +1,13 @@
+include: package:lints/recommended.yaml
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  exclude:
+    - test/fixtures/**
+linter:
+  rules:
+    - public_member_api_docs
+    - avoid_dynamic_calls
+    - unawaited_futures

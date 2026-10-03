@@ -1,3 +1,7 @@
+## 0.2.1
+
+ - **FIX**: allow both verified pana versions 0.23.18 and 0.23.19. ([98d16abd](https://github.com/fischerscode/legal.dart/commit/98d16abdb8ac5f82a516492000c71af462aa97c9))
+
 ## 0.2.0
 
 > Note: This release has breaking changes.

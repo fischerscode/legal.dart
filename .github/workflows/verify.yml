@@ -30,9 +30,9 @@ jobs:
         run: |
           dart run legal list
           dart run legal check
-          dart run legal generate
+          dart run legal generate --force
           cp THIRD_PARTY_LICENSES.txt /tmp/legal-notices-first.txt
-          dart run legal generate
+          dart run legal generate --force
           cmp THIRD_PARTY_LICENSES.txt /tmp/legal-notices-first.txt
       - run: dart doc
       - run: dart pub publish --dry-run

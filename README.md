@@ -60,6 +60,7 @@ Until the initial publication, use this checkout with `dart pub global activate
 dart run legal list --json
 dart run legal check --json
 dart run legal generate --output dist/THIRD_PARTY_LICENSES.txt
+dart run legal generate --force
 dart run legal list --include-dev
 dart run legal check --project ../app --config legal.yaml
 dart run legal generate --help
@@ -78,6 +79,15 @@ there is no implicit discovery or merge. `--no-include-dev` overrides configurat
   no deduplication. Generation is independent of allow/deny evaluation: run
   `check` as well before a release.
 
+If the output already exists, `generate` asks for confirmation in a terminal
+(`y` or `yes`; the default is no). Without interactive input and output, it fails
+with exit code `2` and leaves the existing file unchanged. Use `--force` to
+overwrite without prompting, for example in CI or release scripts. This rule
+applies to every existing output path; there is no special filename blocklist.
+
+When upgrading from 0.1.x, add `--force` to scripts that regenerate an existing
+notice file. Earlier versions overwrote these files without confirmation.
+
 `list --json` and `check --json` emit schema version 1: resolved identity, source,
 SPDX expressions, original document text and relative paths, issues, and policy
 findings. Ignored packages remain visible in the inventory with status `ignored`.
@@ -88,7 +98,7 @@ No ANSI colors are emitted, making redirected and CI output predictable.
 | --- | --- |
 | `0` | Command succeeded; check has no failing decisions |
 | `1` | Check has at least one policy failure |
-| `2` | Scan/configuration/I/O error, or incomplete generation |
+| `2` | Scan/configuration/I/O error, incomplete generation, or overwrite refused |
 | `64` | Invalid command or arguments |
 
 Generation refuses unresolved evidence or missing/empty license texts. A
@@ -265,7 +275,7 @@ the core. `DependencyScanner.fromResolvedData` also accepts pre-collected pub JS
 - uses: dart-lang/setup-dart@v1
 - run: dart pub get
 - run: dart run legal check
-- run: dart run legal generate --output dist/THIRD_PARTY_LICENSES.txt
+- run: dart run legal generate --force --output dist/THIRD_PARTY_LICENSES.txt
 ```
 
 This repository's CI additionally checks formatting, strict analysis, tests,

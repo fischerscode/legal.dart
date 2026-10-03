@@ -30,6 +30,7 @@ void main() {
     expect((await cli(['check', '--bad-flag'])).exitCode, 64);
     expect((await cli(['check', 'extra'])).exitCode, 64);
     expect((await cli(['check', '--output=x'])).exitCode, 64);
+    expect((await cli(['check', '--force'])).exitCode, 64);
     expect((await cli(['generate', '--json'])).exitCode, 64);
   });
   test(
@@ -65,10 +66,10 @@ void main() {
         '--output',
         'generated/notices.txt',
       ];
-      expect((await cli(args)).exitCode, 0);
+      expect((await cli([...args, '--force'])).exitCode, 0);
       final file = File(p.join(project, 'generated/notices.txt'));
       final first = await file.readAsBytes();
-      expect((await cli(args)).exitCode, 0);
+      expect((await cli([...args, '--force'])).exitCode, 0);
       expect(await file.readAsBytes(), first);
       expect(
         await file.readAsString(),
@@ -87,6 +88,80 @@ void main() {
       );
     },
   );
+  test('existing output requires --force without a terminal', () async {
+    final file = File(p.join(project, 'existing.txt'));
+    await file.writeAsString('Previous contents');
+    final args = ['generate', '--project', project, '--output', 'existing.txt'];
+    final refused = await cli(args);
+    expect(refused.exitCode, 2);
+    expect(refused.stderr, contains('Use --force'));
+    expect(await file.readAsString(), 'Previous contents');
+    expect((await cli([...args, '--force'])).exitCode, 0);
+    expect(
+      await file.readAsString(),
+      startsWith('THIRD-PARTY SOFTWARE LICENSES'),
+    );
+  });
+  test(
+    'confirmation can accept or decline; new files and force bypass it',
+    () async {
+      final file = File(p.join(project, 'confirmed.txt'));
+      final args = [
+        'generate',
+        '--project',
+        project,
+        '--output',
+        'confirmed.txt',
+      ];
+      var confirmations = 0;
+      var accepted = false;
+      final errors = StringBuffer();
+      Future<int> generate(List<String> arguments) => runLegal(
+        arguments,
+        output: StringBuffer(),
+        errors: errors,
+        confirmOverwrite: (path) async {
+          expect(path, file.path);
+          confirmations++;
+          return accepted;
+        },
+      );
+      expect(await generate(args), 0);
+      expect(confirmations, 0);
+      await file.writeAsString('Keep me');
+      expect(await generate(args), 2);
+      expect(errors.toString(), contains('Output was not overwritten'));
+      expect(await file.readAsString(), 'Keep me');
+      accepted = true;
+      expect(await generate(args), 0);
+      expect(confirmations, 2);
+      expect(
+        await file.readAsString(),
+        startsWith('THIRD-PARTY SOFTWARE LICENSES'),
+      );
+      expect(await generate([...args, '--force']), 0);
+      expect(confirmations, 2);
+    },
+  );
+  test('force can overwrite a project input explicitly', () async {
+    final root = await fixtureWorkspace();
+    addTearDown(() => root.delete(recursive: true));
+    final app = Directory(p.join(root.path, 'app'));
+    await resolve(app);
+    final result = await cli([
+      'generate',
+      '--project',
+      app.path,
+      '--output',
+      'pubspec.yaml',
+      '--force',
+    ]);
+    expect(result.exitCode, 0, reason: '${result.stderr}');
+    expect(
+      await File(p.join(app.path, 'pubspec.yaml')).readAsString(),
+      startsWith('THIRD-PARTY SOFTWARE LICENSES'),
+    );
+  });
   test(
     'explicit config replaces pubspec settings and provides CI failure code',
     () async {

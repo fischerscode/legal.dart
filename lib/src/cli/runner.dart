@@ -8,15 +8,24 @@ import '../../legal.dart';
 
 /// CommandRunner adapter with injected output; domain code never writes stdout.
 final class LegalCommandRunner extends CommandRunner<int> {
-  /// Creates list, check and generate commands; streams default to the terminal.
-  LegalCommandRunner({StringSink? output})
-    : super(
-        'legal',
-        'Inventory dependency licenses and evaluate project policy.',
-      ) {
+  /// Creates commands with optional output and overwrite confirmation adapters.
+  /// By default, confirmation requires a terminal and accepts `y` or `yes`.
+  LegalCommandRunner({
+    StringSink? output,
+    Future<bool> Function(String path)? confirmOverwrite,
+  }) : super(
+         'legal',
+         'Inventory dependency licenses and evaluate project policy.',
+       ) {
     final sink = output ?? stdout;
     for (final action in _Action.values) {
-      addCommand(_LegalCommand(action, sink));
+      addCommand(
+        _LegalCommand(
+          action,
+          sink,
+          confirmOverwrite ?? (path) => _confirmOverwrite(path, stderr),
+        ),
+      );
     }
   }
 }
@@ -32,17 +41,19 @@ final class _Options {
           : null,
       output = args.option('output'),
       json = args.flag('json'),
-      allowIncomplete = args.flag('allow-incomplete');
+      allowIncomplete = args.flag('allow-incomplete'),
+      force = args.flag('force');
   final String project;
   final String? config;
   final bool? includeDev;
   final String? output;
   final bool json;
   final bool allowIncomplete;
+  final bool force;
 }
 
 final class _LegalCommand extends Command<int> {
-  _LegalCommand(this.action, this.output) {
+  _LegalCommand(this.action, this.output, this.confirmOverwrite) {
     argParser
       ..addOption('project', defaultsTo: '.', help: 'Dart project directory.')
       ..addOption(
@@ -60,6 +71,11 @@ final class _LegalCommand extends Command<int> {
         help: 'Generated notice file (generate only).',
       )
       ..addFlag(
+        'force',
+        negatable: false,
+        help: 'Overwrite an existing output without asking (generate only).',
+      )
+      ..addFlag(
         'json',
         negatable: false,
         help: 'JSON inventory and findings (list/check only).',
@@ -72,6 +88,7 @@ final class _LegalCommand extends Command<int> {
   }
   final _Action action;
   final StringSink output;
+  final Future<bool> Function(String path) confirmOverwrite;
   @override
   String get name => action.name;
   @override
@@ -91,9 +108,9 @@ final class _LegalCommand extends Command<int> {
       usageException('--json is available for list and check.');
     }
     if (action != _Action.generate &&
-        (options.output != null || options.allowIncomplete)) {
+        (options.output != null || options.allowIncomplete || options.force)) {
       usageException(
-        '--output and --allow-incomplete are available for generate.',
+        '--output, --allow-incomplete and --force are available for generate.',
       );
     }
     final project = await LegalProject.load(
@@ -115,22 +132,11 @@ final class _LegalCommand extends Command<int> {
                 options.output ?? project.config.output,
               ),
       );
-      // Guard original evidence and project inputs against accidental overwrite.
-      final target = p.normalize(p.absolute(file.path));
-      final protected = <String>{
-        p.join(project.directory.path, 'pubspec.yaml'),
-        p.join(project.directory.path, 'pubspec.lock'),
-        if (options.config != null)
-          p.join(project.directory.path, options.config!),
-        for (final package in report.packages)
-          for (final doc in package.documents)
-            p.join(Directory.fromUri(package.dependency.root).path, doc.path),
-      };
-      if (protected.map((s) => p.normalize(p.absolute(s))).contains(target) ||
-          await Link(target).exists()) {
-        throw LegalException(
-          'Refusing to overwrite project inputs, license evidence, or a symbolic link: $target',
-        );
+      final type = await FileSystemEntity.type(file.path, followLinks: false);
+      if (type != FileSystemEntityType.notFound &&
+          !options.force &&
+          !await confirmOverwrite(file.path)) {
+        throw LegalException('Output was not overwritten: ${file.path}');
       }
       await file.parent.create(recursive: true);
       final temp = await Directory.systemTemp.createTemp('legal-output-');
@@ -174,17 +180,35 @@ final class _LegalCommand extends Command<int> {
   }
 }
 
+Future<bool> _confirmOverwrite(String path, StringSink prompt) async {
+  if (!stdin.hasTerminal || !stdout.hasTerminal) {
+    throw LegalException(
+      'Output already exists: $path. Use --force to overwrite it in non-interactive mode.',
+    );
+  }
+  prompt.write('Overwrite "$path"? [y/N] ');
+  final answer = stdin.readLineSync()?.trim().toLowerCase();
+  return answer == 'y' || answer == 'yes';
+}
+
 /// Runs the CLI with documented exit codes and concise expected-error messages.
+/// [confirmOverwrite] replaces the terminal prompt for an existing output.
 Future<int> runLegal(
   List<String> arguments, {
   StringSink? output,
   StringSink? errors,
+  Future<bool> Function(String path)? confirmOverwrite,
 }) async {
   final errorSink = errors ?? stderr;
   final verbose = arguments.contains('--verbose');
   final filtered = arguments.where((arg) => arg != '--verbose').toList();
   try {
-    return await LegalCommandRunner(output: output).run(filtered) ?? 0;
+    return await LegalCommandRunner(
+          output: output,
+          confirmOverwrite:
+              confirmOverwrite ?? (path) => _confirmOverwrite(path, errorSink),
+        ).run(filtered) ??
+        0;
   } on UsageException catch (error) {
     errorSink.writeln(error);
     return 64;

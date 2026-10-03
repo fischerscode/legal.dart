@@ -60,24 +60,34 @@ trigger a release. Breaking changes can also use a `BREAKING CHANGE:` footer.
 
 ## First publication
 
-The first version is **0.1.0**, as recorded in pubspec.yaml and CHANGELOG.md.
-Its changelog is intentionally written by hand to describe the initial release.
-Melos uses Git tags and Conventional Commits to determine subsequent changes;
-the existing changelog entry does not trigger a version bump. Do not run
-`melos version` before this first manual publication.
+Use Melos for the first release as well as subsequent ones. The current version
+is an unpublished starting point; review the version proposed by Melos rather
+than assuming the first published version. CHANGELOG.md has a placeholder until
+Melos generates the first release entry from the implementation's feature commit.
+No manually created baseline tag is needed.
 
-Create the public repository `https://github.com/fischerscode/legal.dart`, then
-commit and push the implementation:
+Create the public repository `https://github.com/fischerscode/legal.dart`, commit
+all changes, and start from a clean main branch:
 
 ```sh
 git add .
-git commit -m "feat: add dependency license inventory and policy checks"
-git remote add origin git@github.com:fischerscode/legal.dart.git
-git push -u origin main
+git commit -m "chore: configure initial release workflow"
+melos run check
+melos version
+git show --stat HEAD
+git push -u origin main --follow-tags
 ```
 
-If origin already exists, use its configured URL rather than adding it again.
-Wait for GitHub CI to pass. From the committed checkout, publish once manually:
+If needed, first add the remote with
+`git remote add origin git@github.com:fischerscode/legal.dart.git`.
+`melos version` updates the version and changelog, commits them, creates the
+annotated version tag, and prints a link to the prefilled GitHub release page
+because `releaseUrl: true` is enabled. Push the commit and tag before opening
+that link to review and create the GitHub release. The link does not itself
+create a release; a GitHub release and a pub.dev publication are separate steps.
+
+The tag triggers verification in GitHub, but automatic publication is initially
+disabled. After CI succeeds, publish the exact tagged checkout once manually:
 
 ```sh
 dart pub publish --dry-run
@@ -88,30 +98,23 @@ Follow pub's account authorization prompts. The pub.dev account must be able to
 claim the package name `legal`. If using a verified publisher, transfer the
 package to it after initial publication using the package administration page.
 
-After publication succeeds, tag the **exact commit that was published** and
-push the baseline tag so all clones share the same release history:
-
-```sh
-git tag -a v0.1.0 -m "Release legal 0.1.0"
-git push origin v0.1.0
-```
-
-The Publish workflow explicitly excludes `v0.1.0`, since that historical bootstrap
-release is published manually. It will not attempt a duplicate publication.
-If you change the first version before publishing, update that tag exclusion and
-the initial-release instructions to match.
-
-Then enable automated publishing:
+Then enable automated publishing for future releases:
 
 1. On pub.dev, open **Admin → Automated publishing** for `legal`. Authorize GitHub
    repository `fischerscode/legal.dart`, tag pattern `v{{version}}`.
 2. In GitHub, create an environment named `pub.dev`. Restrict it to release tags;
    add required reviewers if desired. Releases await their approval when enabled.
-3. Configure branch protection for `main` and require CI. No persistent Pub
+3. Under **Settings → Secrets and variables → Actions → Variables**, create the
+   repository variable `PUB_DEV_AUTOMATED_PUBLISHING` with value `true`.
+   This is a non-secret switch, not a credential. Leave it unset until steps 1–2
+   and the manual first publication are complete.
+4. Configure branch protection for `main` and require CI. No persistent Pub
    credential or Pub credential secret is needed.
 
-First-publish authorization, repository creation/push, environment setup, and
-pub.dev settings are owner actions; the development task has not published it.
+Enabling the switch does not rerun old tags. Do not rerun publication for the
+already manually published initial version. First-publish authorization,
+repository creation/push, environment setup, and pub.dev settings are owner
+operations; the development task has not published it.
 
 ## Subsequent releases
 
@@ -130,12 +133,11 @@ git push --follow-tags
 `CHANGELOG.md`, creates a release commit, and creates an annotated plain version
 tag such as `v0.2.0`. Root-package version tags use this format automatically.
 Tag fetching is explicit (`git fetch --tags`) so versioning cannot implicitly
-pull/merge the branch. It does not push. Review the version and changelog before pushing. For the initial
-release, use the manual procedure above rather than bumping an unpublished
-version inadvertently.
+pull/merge the branch. It does not push. Review the version and changelog before
+pushing. It also prints the prefilled GitHub release link for every release.
 
-Only a tag push matching `v*` in the canonical repository triggers publish, with
-`v0.1.0` excluded as the historical manual bootstrap release. The validation job
+Tag pushes matching `v*` in the canonical repository trigger verification.
+Publication also requires repository variable `PUB_DEV_AUTOMATED_PUBLISHING=true`. The validation job
 installs stable Dart, verifies an exact SemVer tag match with the pubspec version,
 runs the same CI checks, and validates the package dry run. On success the official
 reusable `dart-lang/setup-dart/.github/workflows/publish.yml` publishes using a
@@ -145,8 +147,8 @@ reviewed commit. Only the publish job receives `id-token: write`; other jobs hav
 
 Use `git push` and `git push origin <release-tag>` separately if preferred.
 `--follow-tags` pushes reachable annotated tags missing on the remote, including
-older ones. The initial baseline is already pushed and explicitly excluded from
-publishing. Avoid `git push --tags` if you have unrelated local tags.
+older ones. The first tag is pushed with automated publication still disabled; subsequent
+release tags publish after the repository switch is enabled. Avoid `git push --tags` if you have unrelated local tags.
 
 Primary references: [Melos root packages](https://melos.invertase.dev/configuration/overview),
 [Conventional versioning](https://melos.invertase.dev/commands/version), and

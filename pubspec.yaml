@@ -32,6 +32,7 @@ melos:
       branch: main
       workspaceChangelog: false
       updateChangelog: true
+      releaseUrl: true
       gitTagVersion: true
       gitCommitVersion: true
       fetchTags: false

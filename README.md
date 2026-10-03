@@ -290,7 +290,9 @@ melos version
 git push --follow-tags
 ```
 
-GitHub Actions verifies `v<pubspec version>` and publishes through the official
+Melos prints a prefilled GitHub release link. Once automated publishing is
+enabled as described in CONTRIBUTING, GitHub Actions verifies
+`v<pubspec version>` and publishes through the official
 Dart reusable workflow using OIDC. No persistent pub credential is stored in
 GitHub. Review the generated notice file for every distribution. This repository
 dogfoods its runtime dependencies; its generated `THIRD_PARTY_LICENSES.txt` is

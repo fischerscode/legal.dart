@@ -1,8 +1,7 @@
 name: Publish
 on:
   push:
-    # Historical bootstrap release is published manually once.
-    tags: ['v*', '!v0.1.0']
+    tags: ['v*']
 permissions:
   contents: read
 jobs:
@@ -13,7 +12,8 @@ jobs:
       release-tag: ${{ github.ref_name }}
   publish:
     needs: verify
-    if: github.repository == 'fischerscode/legal.dart'
+    # Enable only after the first manual publication and pub.dev OIDC setup.
+    if: github.repository == 'fischerscode/legal.dart' && vars.PUB_DEV_AUTOMATED_PUBLISHING == 'true'
     permissions:
       contents: read
       id-token: write

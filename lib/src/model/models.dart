@@ -70,7 +70,7 @@ final class LicenseDocument {
   /// Purpose of this document.
   final LicenseDocumentKind kind;
 
-  /// Reliably recognized SPDX expression, or null.
+  /// Candidate SPDX expression, or null; see package issues for review findings.
   final LicenseExpression? expression;
 }
 

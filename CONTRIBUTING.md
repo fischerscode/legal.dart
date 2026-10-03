@@ -77,6 +77,21 @@ releases for stable packages. Before 1.0.0 Melos 8.9 uses patch bumps for non-br
 features) and a minor bump for breaking changes; review its proposed version. Documentation-only changes normally do not
 trigger a release. Breaking changes can also use a `BREAKING CHANGE:` footer.
 
+## Updating the license matcher
+
+`pana` is pinned to exactly `0.23.19` because the standalone matcher lives under
+`package:pana/src/`. All access is isolated in
+`lib/src/licenses/pana_adapter.dart`; no pana types appear in the public API.
+Before changing the pin, inspect the upstream API, corpus identifiers, caching,
+token-range semantics and matching thresholds. Run the full suite, including
+the offline fixture and compiled CLI tests, then `dart run legal check` and
+deterministic generation. Review newly flagged evidence before adding or
+changing any version-bound overrides. The root policy currently records a
+review of html 0.15.7's MIT terms and contributor attribution list.
+
+`LicenseDetector.identify` is asynchronous with the pana backend. Consumers
+upgrading from 0.1.x must await it; use `detect` to retain review diagnostics.
+
 ## Publishing setup
 
 The first version of a new package must be published manually before pub.dev

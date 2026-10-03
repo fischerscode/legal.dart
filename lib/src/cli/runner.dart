@@ -36,6 +36,7 @@ final class _Options {
   _Options(ArgResults args)
     : project = args.option('project')!,
       config = args.option('config'),
+      licenseDataDirectory = args.option('license-data'),
       includeDev = args.wasParsed('include-dev')
           ? args.flag('include-dev')
           : null,
@@ -45,6 +46,7 @@ final class _Options {
       force = args.flag('force');
   final String project;
   final String? config;
+  final String? licenseDataDirectory;
   final bool? includeDev;
   final String? output;
   final bool json;
@@ -56,6 +58,10 @@ final class _LegalCommand extends Command<int> {
   _LegalCommand(this.action, this.output, this.confirmOverwrite) {
     argParser
       ..addOption('project', defaultsTo: '.', help: 'Dart project directory.')
+      ..addOption(
+        'license-data',
+        help: 'pana SPDX corpus directory, relative to the project (required for AOT).',
+      )
       ..addOption(
         'config',
         help: 'Explicit policy YAML file, relative to the project.',
@@ -116,6 +122,11 @@ final class _LegalCommand extends Command<int> {
     final project = await LegalProject.load(
       options.project,
       configPath: options.config,
+      detector: LicenseDetector(
+        licenseDataDirectory: options.licenseDataDirectory == null
+            ? null
+            : p.join(options.project, options.licenseDataDirectory!),
+      ),
     );
     final report = await project.scan(includeDev: options.includeDev);
     final result = report.check(project.config.policy);

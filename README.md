@@ -222,16 +222,43 @@ not interpreted as another license. Multiple license documents are conservativel
 combined with **AND**; the tool does not assume dual licensing from filenames.
 Use a reasoned `expression` override after reviewing an actual OR arrangement.
 
-Recognition uses explicit `SPDX-License-Identifier:` declarations or full
-reference matching for MIT, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC, and the
-Dart BSD-3-Clause variant. Matching tolerates whitespace, copyright holder/year,
-standard list bullets, and BSD endorsement-holder names. Additional clauses
-prevent reference matches. Explicit declarations are publisher evidence, not
-proof that the document is a complete or unmodified standard license. Other full
-texts, unusual formatting, and multiple declarations require review. Merely
-mentioning MIT, GPL, or Apache never classifies a document. A valid pubspec
-`license` declaration is retained as a fallback but missing license text still
-requires review. SPDX-ID-only documents likewise require review.
+Recognition uses explicit `SPDX-License-Identifier:` declarations or the
+SPDX text corpus and token matcher shipped with **pana 0.23.19**, pinned to that
+exact version because the adapter uses an internal API.
+The internal pana API is isolated behind an adapter; the normal scan remains
+local and offline after `dart pub get`. This intentionally brings pana's runtime
+dependency tree, including analyzer and test tooling, into legal's dependencies.
+
+The matcher uses pana's 0.95 similarity threshold and rejects candidates with
+more than 50% unclaimed tokens or an unclaimed run of at least 50 tokens.
+Similarity is a recognition heuristic, not a legal assurance. Candidate SPDX
+terms remain separate from review findings: unexplained text outside matches,
+overlapping matches, and changed text require review. Known cosmetic variants
+of the original common-license references are accepted. Multiple non-overlapping
+license texts in one file imply **AND**, without inferring a dual-license choice.
+Normal Apache variants, including an omitted appendix or HTTPS URLs, are handled
+by pana rather than package-specific recognition rules.
+
+Explicit SPDX declarations are publisher evidence, not proof that a document is
+a complete or unmodified standard license. A valid pubspec `license` declaration
+is retained as a fallback but missing license text still requires review.
+SPDX-ID-only documents likewise require review. The pinned corpus may contain
+older SPDX identifiers; identities are validated against legal's registry,
+and unsupported IDs require review. Never infer `-only` versus `-or-later`
+from a generic license text without a clear declaration.
+
+When upgrading from 0.1.x, await `LicenseDetector.identify(text)`, which now
+returns `Future<LicenseExpression?>`. Use `detect(dependency)` to retain review
+findings alongside candidate terms.
+
+Pana loads its corpus from its installed package when running from Dart source.
+For a compiled **legal tool** or an application embedding its detector, ship the
+local directory `pana-0.23.19/lib/src/third_party/spdx/licenses` and specify
+`--license-data /path/to/licenses` or
+`LicenseDetector(licenseDataDirectory: '/path/to/licenses')`. No network lookup
+is performed. Pana caches its corpus per isolate; use one directory per isolate.
+Applications that only distribute notices generated during their release do
+not need this matcher or corpus in the distributed application.
 
 This is **not** a source-file-level auditor: nested vendored code, native assets,
 SDK/toolchain licenses, operating-system libraries, downloaded runtime assets,

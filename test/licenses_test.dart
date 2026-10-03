@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:legal/legal.dart';
 import 'package:legal/src/licenses/reference_texts.dart';
@@ -42,24 +43,95 @@ void main() {
     });
   }
   for (final entry in referenceTexts.entries) {
-    test('full reference detection ${entry.key}', () {
+    test('pana reference detection ${entry.key}', () async {
       expect(
-        detector.identify(entry.value).toString(),
+        (await detector.identify(entry.value)).toString(),
         entry.key == 'BSD-3-Clause-dart' ? 'BSD-3-Clause' : entry.key,
       );
-      expect(
-        detector.identify('${entry.value}\nYou must pay us royalties.'),
-        isNull,
-      );
+      await File(p.join(directory.path, 'LICENSE')).writeAsString(entry.value);
+      expect((await detector.detect(dependency)).requiresReview, isFalse);
+      await File(p.join(directory.path, 'LICENSE'))
+          .writeAsString('${entry.value}\nYou must pay us royalties.');
+      final modified = await detector.detect(dependency);
+      expect(modified.requiresReview, isTrue);
+      expect(modified.expression, isNotNull);
     });
   }
-  test('copyright-prefixed extra terms cannot be normalized away', () {
+  for (final id in ['MPL-2.0', 'CC0-1.0']) {
+    test(
+      'recognizes $id from pana beyond the previous reference subset',
+      () async {
+        final uri = await Isolate.resolvePackageUri(
+          Uri.parse('package:pana/src/third_party/spdx/licenses/$id.txt'),
+        );
+        final text = await File.fromUri(uri!).readAsString();
+        await File(p.join(directory.path, 'LICENSE')).writeAsString(text);
+        final result = await detector.detect(dependency);
+        expect(result.expression.toString(), id);
+        expect(result.requiresReview, isFalse);
+        expect(result.documents.single.text, text);
+        expect(
+          LicenseReport([result]).check(LicensePolicy(allow: {id})).isSuccess,
+          isTrue,
+        );
+      },
+    );
+  }
+  test(
+    'multiple texts in one document retain all terms without guessed OR',
+    () async {
+      await File(p.join(directory.path, 'LICENSE')).writeAsString(
+        '${referenceTexts['MIT']}\n===\n${referenceTexts['BSD-2-Clause']}',
+      );
+      final result = await detector.detect(dependency);
+      expect(result.expression!.terms, {'MIT', 'BSD-2-Clause'});
+      expect(result.requiresReview, isFalse);
+    },
+  );
+  test(
+    'recognized changed terms retain candidate and require review',
+    () async {
+      final text = referenceTexts['Apache-2.0']!.replaceFirst(
+        'royalty-free',
+        'royalty-bearing',
+      );
+      await File(p.join(directory.path, 'LICENSE')).writeAsString(text);
+      final result = await detector.detect(dependency);
+      expect(result.expression.toString(), 'Apache-2.0');
+      expect(result.requiresReview, isTrue);
+      expect(result.issues.join(' '), contains('changed text'));
+      expect(
+        LicenseReport([result]).check(LicensePolicy.permissive()).isSuccess,
+        isFalse,
+      );
+      expect(result.documents.single.text, text);
+    },
+  );
+  test('copyright-prefixed extra terms remain review findings', () async {
+    await File(p.join(directory.path, 'LICENSE')).writeAsString(
+      '${referenceTexts['MIT']}\nCopyright law requires you to pay a royalty.',
+    );
+    expect((await detector.detect(dependency)).requiresReview, isTrue);
+  });
+  test('empty, truncated and wholly unknown input is not guessed', () async {
+    expect(await detector.identify(''), isNull);
+    expect(await detector.identify('Proprietary conditions'), isNull);
     expect(
-      detector.identify(
-        '${referenceTexts['MIT']}\nCopyright law requires you to pay a royalty.',
-      ),
+      await detector.identify(referenceTexts['MIT']!.substring(0, 50)),
       isNull,
     );
+  });
+  test('MIT title and copyright formatting are accepted', () async {
+    await File(p.join(directory.path, 'LICENSE')).writeAsString(
+      'MIT License\nCopyright (c) 2026 Example authors\n${referenceTexts['MIT']}',
+    );
+    expect((await detector.detect(dependency)).requiresReview, isFalse);
+  });
+  test('a long unknown suffix is not accepted as a clean match', () async {
+    await File(p.join(directory.path, 'LICENSE')).writeAsString(
+      '${referenceTexts['MIT']}\n${List.filled(60, 'obligation').join(' ')}',
+    );
+    expect((await detector.detect(dependency)).requiresReview, isTrue);
   });
   test('an SPDX-only document remains incomplete', () async {
     await File(p.join(directory.path, 'LICENSE'))
@@ -141,25 +213,26 @@ void main() {
       'LICENSES/MIT.txt',
     );
   });
-  test('SPDX declarations and expressions, no keyword guessing', () {
+  test('SPDX declarations and expressions, no keyword guessing', () async {
     expect(
-      detector
-          .identify(
-            'SPDX-License-Identifier: MIT OR Apache-2.0\nDeclared license text',
-          )
-          .toString(),
+      (await detector.identify(
+        'SPDX-License-Identifier: MIT OR Apache-2.0\nDeclared license text',
+      )).toString(),
       '(MIT OR Apache-2.0)',
     );
     expect(
-      detector
-          .identify('# SPDX-License-Identifier: GPL-3.0-only\nTerms')
-          .toString(),
+      (await detector.identify(
+        '# SPDX-License-Identifier: GPL-3.0-only\nTerms',
+      )).toString(),
       'GPL-3.0-only',
     );
-    expect(detector.identify('This project mentions MIT and Apache'), isNull);
-    expect(detector.identify('SPDX-License-Identifier: MADE-UP'), isNull);
     expect(
-      detector.identify(
+      await detector.identify('This project mentions MIT and Apache'),
+      isNull,
+    );
+    expect(await detector.identify('SPDX-License-Identifier: MADE-UP'), isNull);
+    expect(
+      await detector.identify(
         'SPDX-License-Identifier: MIT\nSPDX-License-Identifier: GPL-3.0-only',
       ),
       isNull,

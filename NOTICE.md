@@ -9,7 +9,8 @@ No SPDX implementation code is copied into this package.
 
 Full reference texts for MIT, BSD-2-Clause, BSD-3-Clause, Apache-2.0, and ISC in
 `lib/src/licenses/reference_texts.dart` are copied from that release's `text/`
-directory as recognition data. Their complete original texts are retained in
+directory as reference data for reviewing cosmetic matching differences and for
+tests. Identification itself uses the tightly constrained pana dependency. Their complete original texts are retained in
 that source file and never substituted for dependency-supplied documents.
 This attribution does not relicense upstream license texts as legal's BSD-3-Clause
 implementation license.

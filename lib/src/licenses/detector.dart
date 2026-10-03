@@ -5,35 +5,38 @@ import 'package:path/path.dart' as p;
 import '../config/yaml_helpers.dart';
 import '../model/models.dart';
 import 'expression.dart';
-import 'reference_texts.dart';
+import 'pana_adapter.dart';
 
-/// Conservative local detection: SPDX declarations or full reference matches.
+/// Local license evidence discovery backed by the pinned pana text matcher.
 final class LicenseDetector {
-  /// Creates a stateless detector. No network requests are made.
-  const LicenseDetector();
+  /// Uses pana's bundled SPDX corpus when running from Dart source.
+  /// A compiled executable must supply the corpus via [licenseDataDirectory].
+  const LicenseDetector({this.licenseDataDirectory});
 
-  /// Recognizes a complete text, or an explicit SPDX-License-Identifier declaration.
-  /// Merely mentioning a license name is insufficient.
-  LicenseExpression? identify(String text) {
+  /// Directory containing pana 0.23.19's SPDX license `.txt` files.
+  /// Pana caches its corpus per isolate; use one corpus directory per isolate.
+  final String? licenseDataDirectory;
+
+  /// Returns candidate SPDX terms from text or an explicit declaration.
+  /// Use [detect] to retain review findings for altered or additional text.
+  Future<LicenseExpression?> identify(String text) async =>
+      (await _identify(text)).expression;
+
+  Future<PanaIdentification> _identify(String text) async {
     final markers = _declarations.allMatches(text).toList();
     if (markers.isNotEmpty) {
-      // Multiple declarations can describe distinct source files; do not guess.
-      if (markers.length != 1) return null;
+      if (markers.length != 1) return PanaIdentification(null, const []);
       try {
-        return LicenseExpression.parse(markers.single.group(1)!);
-      } on FormatException {
-        return null;
-      }
-    }
-    final normalized = _normalize(text);
-    for (final entry in referenceTexts.entries) {
-      if (normalized == _normalize(entry.value)) {
-        return LicenseExpression.parse(
-          entry.key == 'BSD-3-Clause-dart' ? 'BSD-3-Clause' : entry.key,
+        return PanaIdentification(
+          LicenseExpression.parse(markers.single.group(1)!),
+          const [],
         );
+      } on FormatException {
+        return PanaIdentification(null, const []);
       }
     }
-    return null;
+    return PanaLicenseAdapter(licenseDataDirectory: licenseDataDirectory)
+        .identify(text);
   }
 
   /// Reads root-level license files and `LICENSES/` (REUSE convention).
@@ -61,7 +64,13 @@ final class LicenseDetector {
           .split(p.separator)
           .join('/');
       final notice = p.basename(file.path).toUpperCase().startsWith('NOTICE');
-      final expression = notice ? null : identify(text);
+      final identification = notice ? null : await _identify(text);
+      final expression = identification?.expression;
+      if (identification != null) {
+        issues.addAll(
+          identification.issues.map((issue) => '$relative: $issue'),
+        );
+      }
       if (!notice &&
           expression != null &&
           text
@@ -137,35 +146,4 @@ final class LicenseDetector {
     r'^(LICENSE|LICENCE|COPYING|NOTICE)([._-].*)?$',
     caseSensitive: false,
   ).hasMatch(name);
-
-  String _normalize(String text) {
-    var value = text.replaceAll('\r\n', '\n').trim();
-    // Only cosmetic titles, copyright holders and enumerator formatting vary.
-    // Additional clauses remain present, preventing modified-license matches.
-    value = value.replaceFirst(
-      RegExp(
-        r'^(MIT License|The MIT License(?: \(MIT\))?|BSD [23]-Clause License|ISC License)\s*\n',
-        caseSensitive: false,
-      ),
-      '',
-    );
-    // Only leading copyright statements are cosmetic metadata. Appended
-    // statements remain part of the terms even if they start with Copyright.
-    final copyright = RegExp(
-      r'^\s*Copyright[^\n]*(?:\n|$)',
-      caseSensitive: false,
-    );
-    while (copyright.hasMatch(value)) {
-      value = value.replaceFirst(copyright, '');
-    }
-    value = value.replaceAll(
-      RegExp(r'^\s*(?:[123]\.|\*)\s+', multiLine: true),
-      '',
-    );
-    value = value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
-    return value.replaceAll(
-      RegExp(r'neither the name of .+? nor the names of its contributors'),
-      'neither the name of the copyright holder nor the names of its contributors',
-    );
-  }
 }

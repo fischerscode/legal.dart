@@ -57,13 +57,36 @@ root-level names and REUSE LICENSES files. NOTICE is always retained and has no
 inferred SPDX identity. Multiple license documents imply AND unless the owner
 explicitly reclassifies them after review.
 
-Full matching is conservative: reference bodies must match after limited
-cosmetic normalization. Keyword snippets are insufficient; custom additional
-clauses remain unknown. Explicit SPDX declarations are treated as publisher
-claims, rather than full-text proofs. Unknown files are never discarded just
-because another file was recognized. Binary/invalid UTF-8 fails rather than
-replacing bytes. The renderer copies original decoded text without normalization
-or deduplication; normalized text is used only for recognition.
+Text recognition delegates to the internal matcher in `pana` 0.23.19,
+pinned to that exact version. `PanaLicenseAdapter` owns all implementation imports and translates
+results into legal's domain types. The SPDX corpus and algorithm come from pana;
+Apache appendix and URL variations are no longer custom recognition branches.
+Detection is asynchronous. The wrapper uses pana's 0.95 threshold and its
+unclaimed-text rejection limits (more than 50% or a run of at least 50 tokens).
+
+Identification does not imply approval: candidate terms are retained while
+unexplained text outside covered ranges, unexplained changed text and overlapping
+matches create review findings. The familiar reference subset validates known
+cosmetic differences only; it never identifies licenses. Original decoded texts
+are always preserved. Pana normalizes copyright lines before matching, so its
+ranges must be interpreted against the same preprocessed input. Combined token
+ranges, rather than individual match offsets, retain optional appendix coverage.
+An internal cache is owned by pana; callers should use one corpus per isolate.
+
+Source execution reads pana's local corpus via package resolution. AOT execution
+requires an explicitly supplied corpus directory (CLI `--license-data` or the
+`LicenseDetector.licenseDataDirectory` constructor option). The compiled CLI
+integration test exercises this offline and verifies an actionable error when
+the corpus is absent. No matching code or full corpus is copied from pana.
+
+The larger runtime dependency graph is an explicit tradeoff for reuse. Dogfooding
+reviews html 0.15.7 with a version-bound MIT expression override: its full terms
+match, but the lengthy contributor attribution exceeds pana's matching limits.
+
+Explicit SPDX declarations remain publisher claims, rather than full-text
+proofs. Unknown files are never discarded because another file was recognized.
+Binary/invalid UTF-8 fails instead of replacing bytes. The renderer copies original
+decoded text without normalization or deduplication.
 
 The parser implements SPDX precedence (WITH > AND > OR), grouping, registered IDs,
 exceptions and LicenseRef syntax. It rejects unknown registered IDs and invalid

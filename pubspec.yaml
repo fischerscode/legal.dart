@@ -12,6 +12,8 @@ environment:
   sdk: ^3.13.0
 dependencies:
   args: ^2.7.0
+  # Internal license detection API: review adapter/tests before changing this pin.
+  pana: 0.23.19
   path: ^1.9.1
   pub_semver: ^2.2.0
   yaml: ^3.1.3
@@ -46,3 +48,9 @@ melos:
 legal:
   policy: permissive
   unknown: deny
+  packages:
+    overrides:
+      html:
+        versions: '0.15.7'
+        expression: MIT
+        reason: 'Reviewed full LICENSE: standard MIT terms preceded by copyright and a contributor attribution list, which exceeds pana unmatched-text limits. Preserve all original attribution.'

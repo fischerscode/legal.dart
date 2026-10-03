@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:legal/legal.dart';
 import 'package:legal/src/cli/runner.dart';
@@ -243,4 +244,46 @@ void main() {
     final loaded = await LegalProject.load(project);
     expect((await loaded.scan()).check(loaded.config.policy).isSuccess, isTrue);
   });
+  test(
+    'compiled CLI scans offline with an explicitly supplied pana corpus',
+    () async {
+      final executable = p.join(
+        workspace.path,
+        Platform.isWindows ? 'legal.exe' : 'legal',
+      );
+      final compiled = await Process.run(Platform.resolvedExecutable, [
+        'compile',
+        'exe',
+        '--packages=$packageConfig',
+        script,
+        '-o',
+        executable,
+      ]);
+      expect(
+        compiled.exitCode,
+        0,
+        reason: '${compiled.stdout}\n${compiled.stderr}',
+      );
+      final missing = await Process.run(executable, [
+        'list',
+        '--project',
+        project,
+      ]);
+      expect(missing.exitCode, 2);
+      expect(missing.stderr, contains('--license-data'));
+      final uri = await Isolate.resolvePackageUri(
+        Uri.parse('package:pana/src/third_party/spdx/licenses/Apache-2.0.txt'),
+      );
+      final corpus = File.fromUri(uri!).parent.path;
+      final result = await Process.run(
+        executable,
+        ['check', '--project', project, '--license-data', corpus, '--json'],
+        environment: {'PUB_HOSTED_URL': 'http://127.0.0.1:1'},
+      );
+      expect(result.exitCode, 0, reason: '${result.stderr}');
+      final json = jsonDecode(result.stdout as String) as Map<String, Object?>;
+      expect((json['packages']! as List<Object?>).length, 3);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 }

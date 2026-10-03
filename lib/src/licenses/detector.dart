@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:pub_semver/pub_semver.dart';
 
 import '../config/yaml_helpers.dart';
 import '../model/models.dart';
@@ -41,7 +42,49 @@ final class LicenseDetector {
 
   /// Reads root-level license files and `LICENSES/` (REUSE convention).
   /// UTF-8 decoding and I/O failures are scan errors rather than policy findings.
-  Future<PackageLicense> detect(Dependency dependency) async {
+  Future<PackageLicense> detect(Dependency dependency) => _detect(dependency);
+
+  /// Reads SDK root documents and explicitly supplied runtime license files.
+  /// The SDK must be the one used to build the distributed application.
+  /// Additional paths are absolute or relative to [directory].
+  Future<PackageLicense> detectSdk(
+    Directory directory, {
+    Iterable<String> additionalFiles = const [],
+  }) async {
+    final versionFile = File(p.join(directory.path, 'version'));
+    if (!await versionFile.exists()) {
+      throw LegalException(
+        'Missing Dart SDK version file: ${versionFile.path}. '
+        'Set --sdk-path to the build SDK directory (not the Flutter root).',
+      );
+    }
+    final version = (await versionFile.readAsString()).trim();
+    try {
+      Version.parse(version);
+    } on FormatException {
+      throw LegalException(
+        'Invalid Dart SDK version in ${versionFile.path}: $version',
+      );
+    }
+    return _detect(
+      Dependency(
+        name: 'dart-sdk',
+        version: version,
+        root: directory.absolute.uri,
+        source: 'sdk',
+        direct: false,
+        url: 'https://github.com/dart-lang/sdk',
+      ),
+      sdk: true,
+      additionalFiles: additionalFiles,
+    );
+  }
+
+  Future<PackageLicense> _detect(
+    Dependency dependency, {
+    bool sdk = false,
+    Iterable<String> additionalFiles = const [],
+  }) async {
     final directory = Directory.fromUri(dependency.root);
     final files = <File>[];
     await for (final entity in directory.list(followLinks: true)) {
@@ -52,6 +95,23 @@ final class LicenseDetector {
           if (child is File) files.add(child);
         }
       }
+    }
+    for (final path in additionalFiles) {
+      final file = File(
+        p.isAbsolute(path) ? path : p.join(directory.path, path),
+      );
+      if (!await file.exists()) {
+        throw LegalException('Missing SDK license file: ${file.path}');
+      }
+      final resolved = await file.resolveSymbolicLinks();
+      var duplicate = false;
+      for (final existing in files) {
+        if (await existing.resolveSymbolicLinks() == resolved) {
+          duplicate = true;
+          break;
+        }
+      }
+      if (!duplicate) files.add(file);
     }
     files.sort((a, b) => a.path.compareTo(b.path));
     final docs = <LicenseDocument>[];
@@ -102,9 +162,9 @@ final class LicenseDetector {
         }
       }
     }
-    final pubspec = await readYaml(
-      File(p.join(directory.path, 'pubspec.yaml')),
-    );
+    final pubspec = sdk
+        ? <String, Object?>{}
+        : await readYaml(File(p.join(directory.path, 'pubspec.yaml')));
     LicenseExpression? metadata;
     if (pubspec['license'] is String) {
       try {

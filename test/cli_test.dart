@@ -283,6 +283,25 @@ void main() {
       expect(result.exitCode, 0, reason: '${result.stderr}');
       final json = jsonDecode(result.stdout as String) as Map<String, Object?>;
       expect((json['packages']! as List<Object?>).length, 3);
+      final sdkArgs = [
+        'check',
+        '--project',
+        project,
+        '--license-data',
+        corpus,
+        '--include-sdk',
+      ];
+      final noSdk = await Process.run(executable, sdkArgs);
+      expect(noSdk.exitCode, 2);
+      expect(noSdk.stderr, contains('--sdk-path'));
+      final withSdk = await Process.run(executable, [
+        ...sdkArgs,
+        '--sdk-path',
+        File(Platform.resolvedExecutable).parent.parent.path,
+        '--json',
+      ]);
+      expect(withSdk.exitCode, 0, reason: '${withSdk.stderr}');
+      expect(withSdk.stdout, contains('"name": "dart-sdk"'));
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );

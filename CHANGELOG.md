@@ -1,3 +1,10 @@
+## Unreleased
+
+- Add optional Dart SDK license inventory to CLI, configuration and API, with
+  automatic SDK discovery during source execution and explicit build SDK paths.
+- Accept additional runtime license/notice files and include SDK evidence in
+  policy checks, JSON and generated notices.
+
 ## 0.2.1
 
  - **FIX**: allow both verified pana versions 0.23.18 and 0.23.19. ([98d16abd](https://github.com/fischerscode/legal.dart/commit/98d16abdb8ac5f82a516492000c71af462aa97c9))

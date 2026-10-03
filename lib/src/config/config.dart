@@ -15,7 +15,11 @@ final class LegalConfig {
     LicensePolicy? policy,
     this.output = 'THIRD_PARTY_LICENSES.txt',
     this.includeDev = false,
-  }) : policy = policy ?? LicensePolicy();
+    this.includeSdk = false,
+    this.sdkPath,
+    Iterable<String> sdkLicenseFiles = const [],
+  }) : policy = policy ?? LicensePolicy(),
+       sdkLicenseFiles = List.unmodifiable(sdkLicenseFiles);
 
   /// License and package rules.
   final LicensePolicy policy;
@@ -25,6 +29,15 @@ final class LegalConfig {
 
   /// Whether scans also follow the selected project's dev dependencies.
   final bool includeDev;
+
+  /// Whether to inventory the Dart SDK alongside Pub dependencies.
+  final bool includeSdk;
+
+  /// Build SDK directory, absolute or relative to the selected project.
+  final String? sdkPath;
+
+  /// Additional SDK license/notice files, absolute or relative to the SDK.
+  final List<String> sdkLicenseFiles;
 
   /// Reads pubspec.yaml by default; [configPath] is an explicit replacement.
   /// No implicit legal.yaml discovery or merging is performed.
@@ -52,6 +65,9 @@ final class LegalConfig {
       'policy',
       'output',
       'include_dev',
+      'include_sdk',
+      'sdk_path',
+      'sdk_license_files',
       'licenses',
       'unknown',
       'packages',
@@ -132,6 +148,14 @@ final class LegalConfig {
           '$context.output',
         ),
         includeDev: includeDev,
+        includeSdk: _bool(data['include_sdk'] ?? false, '$context.include_sdk'),
+        sdkPath: data['sdk_path'] == null
+            ? null
+            : requireString(data['sdk_path'], '$context.sdk_path'),
+        sdkLicenseFiles: _strings(
+          data['sdk_license_files'],
+          '$context.sdk_license_files',
+        ),
         policy: LicensePolicy(
           allow: {
             if (preset == 'permissive') ...LicensePolicy.permissiveLicenses,

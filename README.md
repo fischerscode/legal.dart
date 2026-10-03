@@ -107,6 +107,54 @@ text; it cannot create missing text. `--allow-incomplete` produces a conspicuous
 marked **INCOMPLETE DRAFT** for manual work. A package-level approval does not
 waive the generator's completeness checks. Outputs never paraphrase licenses.
 
+## Dart SDK and bundled runtime licenses
+
+For a precompiled executable with an integrated Dart runtime, opt into SDK
+license evidence for all three commands:
+
+```sh
+dart run legal check --include-sdk
+dart run legal generate --include-sdk
+# Select the SDK that built the release, if different from the running SDK:
+dart run legal generate --include-sdk --sdk-path /path/to/dart-sdk
+```
+
+When running from Dart source, the default SDK path is derived from
+`Platform.resolvedExecutable`, including when using FVM. An explicit `--sdk-path`
+overrides `sdk_path` in configuration; relative paths are resolved against the
+selected project. For Flutter, select `bin/cache/dart-sdk` inside the Flutter SDK.
+A compiled **legal tool** requires an explicit SDK path because its executable
+path cannot identify the SDK that built your application. This is separate from
+`--license-data`, which selects pana's matcher corpus.
+
+```yaml
+legal:
+  policy: permissive
+  include_sdk: true
+  # Optional when running from source:
+  sdk_path: /path/to/build/dart-sdk
+  sdk_license_files:
+    - /path/to/matching-sdk-source/runtime/third_party/component/LICENSE
+    - /path/to/release/NOTICE-runtime
+```
+
+The inventory adds `dart-sdk` with source `sdk` and the SDK's `version` file.
+It reads the same root license/notice filenames and `LICENSES/` contents as the
+package detector. Original texts appear in JSON and generated output and follow
+the same recognition, policy and completeness rules as package evidence. Missing
+or invalid SDK versions fail the scan; missing or empty license evidence prevents
+complete generation. `--no-include-sdk` overrides an enabled configuration.
+
+SDK distributions do not necessarily contain all notices for third-party code
+inside their runtime. Supply reviewed files for the SDK version and target you
+ship through `sdk_license_files` or repeatable `--sdk-license-file` options. These
+paths are absolute or relative to the selected SDK. CLI file options replace the
+configured list; duplicate file references are included once. Files named
+`NOTICE*` are supplementary notices; other explicitly supplied files are checked
+as license terms. The tool does not fetch missing notices or determine which
+native components were linked. Including SDK evidence alone therefore does not
+establish a complete runtime inventory.
+
 ## Policy configuration
 
 ```yaml
@@ -263,7 +311,8 @@ Applications that only distribute notices generated during their release do
 not need this matcher or corpus in the distributed application.
 
 This is **not** a source-file-level auditor: nested vendored code, native assets,
-SDK/toolchain licenses, operating-system libraries, downloaded runtime assets,
+SDK third-party components not supplied through the SDK option, other toolchain
+licenses, operating-system libraries, downloaded runtime assets,
 and source availability obligations need separate attention. The root project's
 own license is excluded. UTF-8 decoding or unreadable files fail the scan; empty
 and unrecognized documents remain visible review findings. The output preserves

@@ -52,8 +52,16 @@ final class LegalProject {
   }
 
   /// Inventories resolved dependencies, excluding the selected project itself.
+  /// [includeSdk] adds SDK evidence; [sdkPath] selects the build SDK directory.
+  /// Without an explicit path, source execution uses the running Dart SDK.
+  /// [sdkLicenseFiles] replaces configured additional paths, relative to the SDK.
   /// Ignores are applied during checks/rendering, not during graph traversal.
-  Future<LicenseReport> scan({bool? includeDev}) async {
+  Future<LicenseReport> scan({
+    bool? includeDev,
+    bool? includeSdk,
+    String? sdkPath,
+    Iterable<String>? sdkLicenseFiles,
+  }) async {
     try {
       final dependencies = await scanner.scan(
         directory,
@@ -62,6 +70,33 @@ final class LegalProject {
       final packages = <PackageLicense>[];
       for (final dependency in dependencies) {
         packages.add(await detector.detect(dependency));
+      }
+      if (includeSdk ?? config.includeSdk) {
+        final selectedPath = sdkPath ?? config.sdkPath;
+        final Directory sdk;
+        if (selectedPath != null) {
+          sdk = Directory(
+            p.isAbsolute(selectedPath)
+                ? selectedPath
+                : p.join(directory.path, selectedPath),
+          );
+        } else {
+          final executable = File(Platform.resolvedExecutable);
+          final name = p.basename(executable.path).toLowerCase();
+          if (name != 'dart' && name != 'dart.exe') {
+            throw const LegalException(
+              'Cannot discover the build SDK from a compiled executable. '
+              'Specify --sdk-path or legal.sdk_path.',
+            );
+          }
+          sdk = executable.parent.parent;
+        }
+        packages.add(
+          await detector.detectSdk(
+            sdk,
+            additionalFiles: sdkLicenseFiles ?? config.sdkLicenseFiles,
+          ),
+        );
       }
       return LicenseReport(packages);
     } on FileSystemException catch (error) {

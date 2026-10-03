@@ -36,6 +36,13 @@ final class _Options {
   _Options(ArgResults args)
     : project = args.option('project')!,
       config = args.option('config'),
+      sdkPath = args.option('sdk-path'),
+      sdkLicenseFiles = args.wasParsed('sdk-license-file')
+          ? args.multiOption('sdk-license-file')
+          : null,
+      includeSdk = args.wasParsed('include-sdk')
+          ? args.flag('include-sdk')
+          : null,
       licenseDataDirectory = args.option('license-data'),
       includeDev = args.wasParsed('include-dev')
           ? args.flag('include-dev')
@@ -46,6 +53,9 @@ final class _Options {
       force = args.flag('force');
   final String project;
   final String? config;
+  final String? sdkPath;
+  final List<String>? sdkLicenseFiles;
+  final bool? includeSdk;
   final String? licenseDataDirectory;
   final bool? includeDev;
   final String? output;
@@ -70,6 +80,20 @@ final class _LegalCommand extends Command<int> {
         'include-dev',
         defaultsTo: false,
         help: 'Include the project’s dev dependency closure.',
+      )
+      ..addFlag(
+        'include-sdk',
+        defaultsTo: false,
+        help: 'Include Dart SDK license evidence in inventory, checks and notices.',
+      )
+      ..addOption(
+        'sdk-path',
+        help: 'Build Dart SDK directory, relative to the project or absolute.',
+      )
+      ..addMultiOption(
+        'sdk-license-file',
+        splitCommas: false,
+        help: 'Additional runtime license/notice file, relative to the SDK or absolute (repeatable).',
       )
       ..addOption(
         'output',
@@ -128,7 +152,12 @@ final class _LegalCommand extends Command<int> {
             : p.join(options.project, options.licenseDataDirectory!),
       ),
     );
-    final report = await project.scan(includeDev: options.includeDev);
+    final report = await project.scan(
+      includeDev: options.includeDev,
+      includeSdk: options.includeSdk,
+      sdkPath: options.sdkPath,
+      sdkLicenseFiles: options.sdkLicenseFiles,
+    );
     final result = report.check(project.config.policy);
     if (action == _Action.generate) {
       final text = report.renderThirdPartyLicenses(

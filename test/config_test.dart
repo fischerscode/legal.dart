@@ -4,6 +4,8 @@ import 'package:test/test.dart';
 void main() {
   test('default conservative and preset explicit', () {
     expect(LegalConfig.fromMap({}).policy.allow, isEmpty);
+    expect(LegalConfig.fromMap({}).includeSdk, isFalse);
+    expect(LegalConfig.fromMap({}).sdkLicenseFiles, isEmpty);
     expect(LegalConfig.fromMap({}).policy.unknown, UnknownLicenseAction.deny);
     expect(
       LegalConfig.fromMap({'policy': 'permissive'}).policy.allow,
@@ -15,6 +17,9 @@ void main() {
       'policy': 'permissive',
       'output': 'notices.txt',
       'include_dev': true,
+      'include_sdk': true,
+      'sdk_path': 'build-sdk',
+      'sdk_license_files': ['third_party/LICENSE', 'NOTICE-runtime'],
       'unknown': 'warn',
       'licenses': {
         'deny': ['AGPL-3.0-only'],
@@ -35,12 +40,21 @@ void main() {
     });
     expect(config.output, 'notices.txt');
     expect(config.includeDev, isTrue);
+    expect(config.includeSdk, isTrue);
+    expect(config.sdkPath, 'build-sdk');
+    expect(config.sdkLicenseFiles, ['third_party/LICENSE', 'NOTICE-runtime']);
     expect(config.policy.overrides['sample']!.appliesTo('1.2.3'), isTrue);
     expect(config.policy.overrides['sample']!.appliesTo('2.0.0'), isFalse);
   });
   final invalid = <Map<String, Object?>>[
     {'unknown': 'ignore'},
     {'include_dev': 'true'},
+    {'include_sdk': 'true'},
+    {'sdk_path': ''},
+    {'sdk_license_files': 'LICENSE'},
+    {
+      'sdk_license_files': [''],
+    },
     {
       'licenses': {'allow': 'MIT'},
     },

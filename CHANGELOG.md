@@ -1,3 +1,7 @@
+## 0.2.2
+
+ - **FEAT**: include Dart SDK licenses in inventory and notices. ([20b97986](https://github.com/fischerscode/legal.dart/commit/20b97986f57ca719dc8d1a2f796fe41ffd5dae39))
+
 ## Unreleased
 
 - Add optional Dart SDK license inventory to CLI, configuration and API, with

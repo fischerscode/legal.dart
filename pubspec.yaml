@@ -1,6 +1,6 @@
 name: legal
 description: Offline third-party license inventory, SPDX policy checks, and deterministic license notices for Dart applications.
-version: 0.2.1
+version: 0.2.2
 repository: https://github.com/fischerscode/legal.dart
 issue_tracker: https://github.com/fischerscode/legal.dart/issues
 topics:

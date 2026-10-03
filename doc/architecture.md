@@ -57,8 +57,9 @@ root-level names and REUSE LICENSES files. NOTICE is always retained and has no
 inferred SPDX identity. Multiple license documents imply AND unless the owner
 explicitly reclassifies them after review.
 
-Text recognition delegates to the internal matcher in `pana` 0.23.19,
-pinned to that exact version. `PanaLicenseAdapter` owns all implementation imports and translates
+Text recognition delegates to the internal matcher in `pana` 0.23.18–0.23.19,
+constrained to `>=0.23.18 <0.23.20`. Both versions have identical matcher code
+and SPDX corpus. `PanaLicenseAdapter` owns all implementation imports and translates
 results into legal's domain types. The SPDX corpus and algorithm come from pana;
 Apache appendix and URL variations are no longer custom recognition branches.
 Detection is asynchronous. The wrapper uses pana's 0.95 threshold and its

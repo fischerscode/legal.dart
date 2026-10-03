@@ -79,10 +79,11 @@ trigger a release. Breaking changes can also use a `BREAKING CHANGE:` footer.
 
 ## Updating the license matcher
 
-`pana` is pinned to exactly `0.23.19` because the standalone matcher lives under
+`pana` is constrained to `>=0.23.18 <0.23.20` because the standalone matcher lives under
 `package:pana/src/`. All access is isolated in
 `lib/src/licenses/pana_adapter.dart`; no pana types appear in the public API.
-Before changing the pin, inspect the upstream API, corpus identifiers, caching,
+Both supported versions have identical matcher code and SPDX corpus.
+Before changing the constraint, inspect the upstream API, corpus identifiers, caching,
 token-range semantics and matching thresholds. Run the full suite, including
 the offline fixture and compiled CLI tests, then `dart run legal check` and
 deterministic generation. Review newly flagged evidence before adding or

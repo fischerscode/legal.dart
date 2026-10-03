@@ -1,4 +1,4 @@
-// pana 0.23.19 has no public standalone detection API. Keep its internal API
+// pana 0.23.18–0.23.19 has no public standalone detection API. Keep its internal API
 // usage in this adapter and review the integration tests before updating it.
 // ignore_for_file: implementation_imports, invalid_use_of_visible_for_testing_member
 import 'package:pana/src/license_detection/license_detector.dart' as pana;
@@ -25,7 +25,7 @@ final class PanaLicenseAdapter {
   /// Uses the corpus shipped with pana, or an explicit local corpus for AOT.
   const PanaLicenseAdapter({this.licenseDataDirectory});
 
-  /// An optional directory containing the pinned pana corpus.
+  /// An optional directory containing the resolved pana corpus.
   final String? licenseDataDirectory;
 
   /// Runs pana's matcher and preserves evidence requiring manual review.
@@ -42,7 +42,7 @@ final class PanaLicenseAdapter {
       throw LegalException(
         'Could not load pana license data: $error. For a compiled executable, '
         'provide --license-data (CLI) or LicenseDetector(licenseDataDirectory: ...) '
-        'pointing to pana 0.23.19 lib/src/third_party/spdx/licenses.',
+        'pointing to the resolved pana lib/src/third_party/spdx/licenses.',
       );
     }
     // Match pana's own acceptance limits; similarity is not a legal assurance.

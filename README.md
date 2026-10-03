@@ -223,8 +223,10 @@ combined with **AND**; the tool does not assume dual licensing from filenames.
 Use a reasoned `expression` override after reviewing an actual OR arrangement.
 
 Recognition uses explicit `SPDX-License-Identifier:` declarations or the
-SPDX text corpus and token matcher shipped with **pana 0.23.19**, pinned to that
-exact version because the adapter uses an internal API.
+SPDX text corpus and token matcher shipped with **pana 0.23.18–0.23.19**.
+The constraint `>=0.23.18 <0.23.20` allows these two verified versions; newer
+versions require an explicit compatibility review because the adapter uses an
+internal API.
 The internal pana API is isolated behind an adapter; the normal scan remains
 local and offline after `dart pub get`. This intentionally brings pana's runtime
 dependency tree, including analyzer and test tooling, into legal's dependencies.

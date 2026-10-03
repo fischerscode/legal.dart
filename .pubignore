@@ -10,3 +10,7 @@ doc/api/
 
 .idea/
 *.iml
+
+.fvm/
+.fvmrc
+.vscode/

@@ -282,7 +282,10 @@ future extension rather than another output format in v1.
 
 ## Development and releases
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for Melos, Conventional Commits, offline
+Development uses the FVM SDK pin in `.fvmrc`; Melos and the committed VS Code
+settings select that SDK. Consumers do not need FVM.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for FVM, Melos, Conventional Commits, offline
 fixtures, hooks, and the first-publish setup. After that setup, releases use:
 
 ```sh

@@ -23,6 +23,7 @@ executables:
   legal:
 workspace: []
 melos:
+  sdkPath: .fvm/flutter_sdk
   useRootAsPackage: true
   ide:
     intellij:

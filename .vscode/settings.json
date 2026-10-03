@@ -1,0 +1,14 @@
+{
+  "dart.sdkPath": ".fvm/flutter_sdk/bin/cache/dart-sdk",
+  "dart.flutterSdkPath": ".fvm/flutter_sdk",
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.formatOnSave": true
+  },
+  "files.watcherExclude": {
+    "**/.fvm/**": true
+  },
+  "search.exclude": {
+    "**/.fvm/**": true
+  }
+}

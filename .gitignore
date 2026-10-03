@@ -8,3 +8,5 @@ doc/api/
 
 .idea/
 *.iml
+
+.fvm/

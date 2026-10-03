@@ -1,28 +1,32 @@
 # Contributing
 
-Use stable Dart (currently tested with 3.13.4) and Git. This repository contains
+Use Git and [FVM](https://fvm.app/documentation/getting-started/installation).
+The committed `.fvmrc` pins Flutter 3.47.5, including Dart 3.13.4. FVM supplies
+the development SDK; the package itself remains Pure Dart. This repository contains
 one publishable package in the root; fixture packages are test data, not workspace
 members. Melos 8 uses configuration in `pubspec.yaml`, `workspace: []`, and
 `useRootAsPackage: true`. A separate melos.yaml is not needed.
 
 ```sh
-dart pub get
-dart run melos bootstrap
-dart run melos run analyze
-dart run melos run test
-dart run melos run format
-dart run melos run check
-dart doc
+fvm use --force --skip-pub-get
+fvm dart pub get
+fvm dart run melos bootstrap
+fvm dart run melos run analyze
+fvm dart run melos run test
+fvm dart run melos run format
+fvm dart run melos run check
+fvm dart doc
 ```
 
 To use the shorter `melos` command, install the launcher:
 
 ```sh
-dart pub global activate melos
+fvm dart pub global activate melos
 melos run check
 ```
 
-The launcher delegates to the pinned local project dependency. `check` runs
+The launcher delegates to the pinned local project dependency. Melos uses
+`sdkPath: .fvm/flutter_sdk`, so its scripts use the FVM-selected SDK as well. `check` runs
 format verification, strict analysis, tests, dogfooding policy, and publish dry
 run. CI also generates the dogfood notice twice and compares bytes. The generated
 file is intentionally ignored. Tests copy filesystem fixtures, resolve path
@@ -41,6 +45,21 @@ Avoid adding dependencies unless needed; keep runtime dependencies separate from
 development tools. Keep API docs, configuration diagnostics, deterministic output,
 and fixture coverage current. Tests under `test/goldens/` are reviewed source
 artifacts; update them deliberately when the documented output changes.
+
+## VS Code
+
+The committed `.vscode/settings.json` points the Dart extension at
+`.fvm/flutter_sdk/bin/cache/dart-sdk` and the Flutter SDK at `.fvm/flutter_sdk`.
+Install the recommended Dart extension, run `fvm use --force --skip-pub-get`, then
+reload the window if it was already open. The SDK symlink under `.fvm/` is local
+and ignored by Git; `.fvmrc` and `.vscode/` settings are committed. Formatting on
+save uses the selected SDK. FVM's automatic settings rewrites are disabled to
+keep these checked-in paths stable.
+
+CI installs standalone stable Dart directly, verifying that the Pure Dart package
+does not require Flutter or FVM. Repository development and local releases use
+FVM; consumers can continue to use ordinary `dart` commands. When updating the
+SDK pin, verify the new bundled Dart version against pubspec and the lockfile.
 
 ## Conventional Commits
 
@@ -90,8 +109,8 @@ The tag triggers verification in GitHub, but automatic publication is initially
 disabled. After CI succeeds, publish the exact tagged checkout once manually:
 
 ```sh
-dart pub publish --dry-run
-dart pub publish
+fvm dart pub publish --dry-run
+fvm dart pub publish
 ```
 
 Follow pub's account authorization prompts. The pub.dev account must be able to

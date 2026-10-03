@@ -37,6 +37,7 @@ final class _Options {
     : project = args.option('project')!,
       config = args.option('config'),
       sdkPath = args.option('sdk-path'),
+      sdkTarget = args.option('sdk-target'),
       sdkLicenseFiles = args.wasParsed('sdk-license-file')
           ? args.multiOption('sdk-license-file')
           : null,
@@ -54,6 +55,7 @@ final class _Options {
   final String project;
   final String? config;
   final String? sdkPath;
+  final String? sdkTarget;
   final List<String>? sdkLicenseFiles;
   final bool? includeSdk;
   final String? licenseDataDirectory;
@@ -89,6 +91,11 @@ final class _LegalCommand extends Command<int> {
       ..addOption(
         'sdk-path',
         help: 'Build Dart SDK directory, relative to the project or absolute.',
+      )
+      ..addOption(
+        'sdk-target',
+        help:
+            'Runtime bundle target OS-architecture (defaults to the host ABI).',
       )
       ..addMultiOption(
         'sdk-license-file',
@@ -156,6 +163,7 @@ final class _LegalCommand extends Command<int> {
       includeDev: options.includeDev,
       includeSdk: options.includeSdk,
       sdkPath: options.sdkPath,
+      sdkTarget: options.sdkTarget,
       sdkLicenseFiles: options.sdkLicenseFiles,
     );
     final result = report.check(project.config.policy);
@@ -211,6 +219,9 @@ final class _LegalCommand extends Command<int> {
           '$symbol ${package.dependency.name} ${package.dependency.version} '
           '${package.expression ?? 'unknown'} — ${finding.message}',
         );
+      }
+      for (final issue in result.issues) {
+        output.writeln('INCOMPLETE SDK RUNTIME COVERAGE: $issue');
       }
       output.writeln(
         '${report.packages.length} dependencies; policy ${result.isSuccess ? 'satisfied' : 'requires action'}.',

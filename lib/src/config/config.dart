@@ -17,6 +17,7 @@ final class LegalConfig {
     this.includeDev = false,
     this.includeSdk = false,
     this.sdkPath,
+    this.sdkTarget,
     Iterable<String> sdkLicenseFiles = const [],
   }) : policy = policy ?? LicensePolicy(),
        sdkLicenseFiles = List.unmodifiable(sdkLicenseFiles);
@@ -35,6 +36,9 @@ final class LegalConfig {
 
   /// Build SDK directory, absolute or relative to the selected project.
   final String? sdkPath;
+
+  /// Runtime bundle target OS and architecture, defaulting to the host ABI.
+  final String? sdkTarget;
 
   /// Additional SDK license/notice files, absolute or relative to the SDK.
   final List<String> sdkLicenseFiles;
@@ -67,6 +71,7 @@ final class LegalConfig {
       'include_dev',
       'include_sdk',
       'sdk_path',
+      'sdk_target',
       'sdk_license_files',
       'licenses',
       'unknown',
@@ -152,6 +157,9 @@ final class LegalConfig {
         sdkPath: data['sdk_path'] == null
             ? null
             : requireString(data['sdk_path'], '$context.sdk_path'),
+        sdkTarget: data['sdk_target'] == null
+            ? null
+            : requireString(data['sdk_target'], '$context.sdk_target'),
         sdkLicenseFiles: _strings(
           data['sdk_license_files'],
           '$context.sdk_license_files',

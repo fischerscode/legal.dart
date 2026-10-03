@@ -23,7 +23,7 @@ final class Dependency {
     this.url,
   });
 
-  /// Pub package name.
+  /// Pub package name or synthetic SDK/native-runtime inventory name.
   final String name;
 
   /// Resolved version, not the constraint in pubspec.
@@ -32,7 +32,7 @@ final class Dependency {
   /// Local package directory, including resolved path and Git packages.
   final Uri root;
 
-  /// `hosted`, `path`, `git`, `sdk`, or `root`.
+  /// `hosted`, `path`, `git`, `sdk`, `sdk-runtime`, or `root`.
   final String source;
 
   /// Whether this is an immediate selected dependency.

@@ -1,12 +1,13 @@
 import 'dart:convert';
 
 import '../model/models.dart';
+import '../licenses/runtime_bundle.dart';
 import '../policy/policy.dart';
 
 /// Immutable, sorted inventory that can be checked and rendered without I/O.
 final class LicenseReport {
   /// Sorts by package name so scan traversal order never affects output.
-  LicenseReport(Iterable<PackageLicense> packages)
+  LicenseReport(Iterable<PackageLicense> packages, {this.runtimeCoverage})
     : packages = List.unmodifiable(
         packages.toList()
           ..sort((a, b) => a.dependency.name.compareTo(b.dependency.name)),
@@ -15,8 +16,14 @@ final class LicenseReport {
   /// All scanned packages, including those subsequently ignored by a policy.
   final List<PackageLicense> packages;
 
+  /// Selected SDK runtime bundle coverage, absent when SDK inclusion is disabled.
+  final RuntimeLicenseCoverage? runtimeCoverage;
+
   /// Applies a project policy to this inventory.
-  LicenseCheckResult check(LicensePolicy policy) => policy.check(packages);
+  LicenseCheckResult check(LicensePolicy policy) => LicenseCheckResult(
+    policy.check(packages).findings,
+    issues: runtimeCoverage?.issues ?? const [],
+  );
 
   /// Renders complete original documents without deduplication or timestamps.
   /// Ignored packages are omitted when [policy] is provided.
@@ -26,6 +33,15 @@ final class LicenseReport {
     LicensePolicy? policy,
     bool allowIncomplete = false,
   }) {
+    final coverage = runtimeCoverage;
+    final coverageIncomplete = coverage != null && !coverage.isComplete;
+    if (coverageIncomplete && !allowIncomplete) {
+      throw LegalException(
+        'Incomplete SDK runtime license coverage for Dart '
+        '${coverage.sdkVersion} / ${coverage.target}: ${coverage.issues.join('; ')} '
+        'Use --allow-incomplete to produce a marked draft.',
+      );
+    }
     final selected = packages
         .where((p) => !(policy?.ignore.contains(p.dependency.name) ?? false))
         .toList();
@@ -40,10 +56,22 @@ final class LicenseReport {
     final out = StringBuffer(
       'THIRD-PARTY SOFTWARE LICENSES\n\nThis product includes third-party software.\n',
     );
-    if (incomplete.isNotEmpty) {
+    if (incomplete.isNotEmpty || coverageIncomplete) {
       out.writeln(
         '\nINCOMPLETE DRAFT: unresolved license evidence requires manual review.',
       );
+    }
+    if (coverage != null) {
+      out.writeln('\nSDK RUNTIME LICENSE COVERAGE');
+      out.writeln('SDK version: ${coverage.sdkVersion}');
+      out.writeln('Target: ${coverage.target}');
+      out.writeln('Bundle: ${coverage.bundleId ?? 'none'}');
+      out.writeln(
+        'Coverage: ${coverage.isComplete ? 'complete' : 'incomplete'}',
+      );
+      for (final issue in coverage.issues) {
+        out.writeln('REQUIRES REVIEW: $issue');
+      }
     }
     for (final package in selected) {
       final dep = package.dependency;
@@ -80,6 +108,14 @@ final class LicenseReport {
           };
     return const JsonEncoder.withIndent('  ').convert({
       'schemaVersion': 1,
+      if (runtimeCoverage case final coverage?)
+        'sdkRuntimeCoverage': {
+          'sdkVersion': coverage.sdkVersion,
+          'target': coverage.target,
+          'bundleId': coverage.bundleId,
+          'complete': coverage.isComplete,
+          'issues': coverage.issues,
+        },
       'packages': [
         for (final package in packages)
           {

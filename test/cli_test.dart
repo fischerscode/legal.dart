@@ -300,8 +300,45 @@ void main() {
         File(Platform.resolvedExecutable).parent.parent.path,
         '--json',
       ]);
-      expect(withSdk.exitCode, 0, reason: '${withSdk.stderr}');
+      expect(withSdk.exitCode, 1, reason: '${withSdk.stderr}');
       expect(withSdk.stdout, contains('"name": "dart-sdk"'));
+      expect(withSdk.stdout, contains('"complete": false'));
+      final draftPath = p.join(workspace.path, 'aot-sdk-notices.txt');
+      final draft = await Process.run(
+        executable,
+        [
+          'generate',
+          '--project',
+          project,
+          '--license-data',
+          corpus,
+          '--include-sdk',
+          '--sdk-path',
+          File(Platform.resolvedExecutable).parent.parent.path,
+          '--sdk-target',
+          'linux-x64',
+          '--allow-incomplete',
+          '--output',
+          draftPath,
+        ],
+        environment: {'PUB_HOSTED_URL': 'http://127.0.0.1:1'},
+      );
+      expect(draft.exitCode, 0, reason: '${draft.stderr}');
+      final draftText = await File(draftPath).readAsString();
+      expect(draftText, contains('INCOMPLETE DRAFT'));
+      if (RuntimeLicenseCatalog.bundled.find(
+            (await File(
+              p.join(
+                File(Platform.resolvedExecutable).parent.parent.path,
+                'version',
+              ),
+            ).readAsString()).trim(),
+            'linux-x64',
+          ) !=
+          null) {
+        expect(draftText, contains('dart-runtime-boringssl'));
+        expect(draftText, contains('UNICODE LICENSE V3'));
+      }
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );

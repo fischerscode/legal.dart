@@ -133,27 +133,67 @@ legal:
   include_sdk: true
   # Optional when running from source:
   sdk_path: /path/to/build/dart-sdk
+  sdk_target: linux-x64
   sdk_license_files:
     - /path/to/matching-sdk-source/runtime/third_party/component/LICENSE
     - /path/to/release/NOTICE-runtime
 ```
 
+For cross-compilation, select the **release target**, rather than the host:
+
+```sh
+dart run legal check --include-sdk --sdk-target linux-x64
+dart run legal generate --include-sdk --sdk-target linux-x64 --allow-incomplete
+```
+
+Configure the same choice with `legal.sdk_target: linux-x64`. CLI options override
+configuration. The default target is the host ABI (OS and architecture), such as
+`linux-x64`; it is independent of `--sdk-path` and is not inferred from another
+SDK's directory. The target must describe the executable you distribute.
+
 The inventory adds `dart-sdk` with source `sdk` and the SDK's `version` file.
 It reads the same root license/notice filenames and `LICENSES/` contents as the
-package detector. Original texts appear in JSON and generated output and follow
-the same recognition, policy and completeness rules as package evidence. Missing
-or invalid SDK versions fail the scan; missing or empty license evidence prevents
-complete generation. `--no-include-sdk` overrides an enabled configuration.
+package detector. It also selects an embedded native-runtime license bundle by
+**exact SDK version and target**, without falling back to neighboring releases
+or another architecture. Bundled components have source `sdk-runtime`, names
+such as `dart-runtime-boringssl`, and the SDK version as their inventory version.
+Their source URLs identify the upstream pinned revisions. Original license and
+notice texts are preserved in JSON and generated output.
 
-SDK distributions do not necessarily contain all notices for third-party code
-inside their runtime. Supply reviewed files for the SDK version and target you
-ship through `sdk_license_files` or repeatable `--sdk-license-file` options. These
-paths are absolute or relative to the selected SDK. CLI file options replace the
-configured list; duplicate file references are included once. Files named
-`NOTICE*` are supplementary notices; other explicitly supplied files are checked
-as license terms. The tool does not fetch missing notices or determine which
-native components were linked. Including SDK evidence alone therefore does not
-establish a complete runtime inventory.
+The initial bundle covers **Dart 3.13.4 / linux-x64 partially**. It includes pinned
+texts for BoringSSL, ICU, zlib, double-conversion, libc++, libc++abi and V8 RegExp.
+Compiler runtime components, source-file-specific notices and the exact SDK
+binary have not been fully audited. This bundle therefore reports **incomplete
+coverage**, as does any version/target without a matching bundle. See the
+[runtime bundle audit notes](https://github.com/fischerscode/legal.dart/blob/main/tool/runtime_licenses/README.md) for provenance and
+maintenance details. The texts are embedded in the package's Dart code, so both
+source execution and compiled legal executables collect them entirely offline;
+no upstream checkout, external bundle files or network download is required.
+
+`check` returns failure for incomplete coverage, and plain `list` prints the gaps.
+JSON exposes `sdkRuntimeCoverage` with SDK version, target, bundle identity,
+completeness and issues. `generate` refuses to imply a complete distribution;
+`--allow-incomplete` emits an **INCOMPLETE DRAFT** containing the available texts,
+selected target and coverage gaps. Policy ignores, SPDX expression overrides and
+`unknown: allow` do not turn incomplete runtime coverage into complete coverage.
+Disabling SDK inclusion with `--no-include-sdk` omits SDK/runtime evidence.
+
+Runtime license policy is evaluated separately from coverage. ICU's complete
+upstream file contains several licenses and notices and is retained under the
+review term `LicenseRef-Dart-runtime-ICU`. The narrow `permissive` preset does not
+automatically approve that term, `Zlib` or `Apache-2.0 WITH LLVM-exception`.
+Review the supplied terms before adding package or license approvals; approvals
+cannot resolve an unfinished coverage audit.
+
+Additional reviewed files can still be supplied through `sdk_license_files` or
+repeatable `--sdk-license-file` options. Paths are absolute or relative to the
+selected SDK. CLI file options replace the configured list; duplicate file
+references are included once. Files named `NOTICE*` are supplementary notices;
+other supplied files are checked as license terms. Adding files alone does not
+prove native-runtime coverage and does not suppress the bundle's coverage gaps.
+Missing or invalid SDK versions fail the scan; missing or empty license evidence
+prevents complete generation. Application-specific native assets, dynamically
+linked system libraries and custom SDK builds require separate review.
 
 ## Policy configuration
 

@@ -266,12 +266,19 @@ final class LicenseFinding {
 /// Aggregate result of a policy check.
 final class LicenseCheckResult {
   /// Freezes decisions in inventory order.
-  LicenseCheckResult(Iterable<LicenseFinding> findings)
-    : findings = List.unmodifiable(findings);
+  LicenseCheckResult(
+    Iterable<LicenseFinding> findings, {
+    Iterable<String> issues = const [],
+  }) : findings = List.unmodifiable(findings),
+       issues = List.unmodifiable(issues);
 
   /// Decisions, including warnings and ignores.
   final List<LicenseFinding> findings;
 
+  /// Inventory coverage issues independent of per-package policy decisions.
+  final List<String> issues;
+
   /// True when no finding fails the configured policy.
-  bool get isSuccess => !findings.any((finding) => finding.isFailure);
+  bool get isSuccess =>
+      issues.isEmpty && !findings.any((finding) => finding.isFailure);
 }

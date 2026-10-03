@@ -19,6 +19,7 @@ void main() {
       'include_dev': true,
       'include_sdk': true,
       'sdk_path': 'build-sdk',
+      'sdk_target': 'linux-x64',
       'sdk_license_files': ['third_party/LICENSE', 'NOTICE-runtime'],
       'unknown': 'warn',
       'licenses': {
@@ -42,6 +43,7 @@ void main() {
     expect(config.includeDev, isTrue);
     expect(config.includeSdk, isTrue);
     expect(config.sdkPath, 'build-sdk');
+    expect(config.sdkTarget, 'linux-x64');
     expect(config.sdkLicenseFiles, ['third_party/LICENSE', 'NOTICE-runtime']);
     expect(config.policy.overrides['sample']!.appliesTo('1.2.3'), isTrue);
     expect(config.policy.overrides['sample']!.appliesTo('2.0.0'), isFalse);
@@ -51,6 +53,8 @@ void main() {
     {'include_dev': 'true'},
     {'include_sdk': 'true'},
     {'sdk_path': ''},
+    {'sdk_target': ''},
+    {'sdk_target': false},
     {'sdk_license_files': 'LICENSE'},
     {
       'sdk_license_files': [''],

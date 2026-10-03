@@ -113,7 +113,14 @@ void main() {
       final errors = StringBuffer();
       expect(
         await runLegal(
-          ['generate', '--project', app.path, '--config', 'sdk.yaml'],
+          [
+            'generate',
+            '--project',
+            app.path,
+            '--config',
+            'sdk.yaml',
+            '--allow-incomplete',
+          ],
           output: output,
           errors: errors,
         ),
@@ -232,7 +239,11 @@ void main() {
         0,
       );
       final json = jsonDecode('$output') as Map<String, Object?>;
-      expect((json['packages']! as List<Object?>), hasLength(4));
+      expect(
+        (json['packages']! as List<Object?>).length,
+        greaterThanOrEqualTo(4),
+      );
+      expect(json['sdkRuntimeCoverage'], isA<Map<String, Object?>>());
     },
   );
 }

@@ -77,36 +77,11 @@ releases for stable packages. Before 1.0.0 Melos 8.9 uses patch bumps for non-br
 features) and a minor bump for breaking changes; review its proposed version. Documentation-only changes normally do not
 trigger a release. Breaking changes can also use a `BREAKING CHANGE:` footer.
 
-## First publication
+## Publishing setup
 
-Use Melos for the first release as well as subsequent ones. The current version
-is an unpublished starting point; review the version proposed by Melos rather
-than assuming the first published version. CHANGELOG.md has a placeholder until
-Melos generates the first release entry from the implementation's feature commit.
-No manually created baseline tag is needed.
-
-Create the public repository `https://github.com/fischerscode/legal.dart`, commit
-all changes, and start from a clean main branch:
-
-```sh
-git add .
-git commit -m "chore: configure initial release workflow"
-melos run check
-melos version
-git show --stat HEAD
-git push -u origin main --follow-tags
-```
-
-If needed, first add the remote with
-`git remote add origin git@github.com:fischerscode/legal.dart.git`.
-`melos version` updates the version and changelog, commits them, creates the
-annotated version tag, and prints a link to the prefilled GitHub release page
-because `releaseUrl: true` is enabled. Push the commit and tag before opening
-that link to review and create the GitHub release. The link does not itself
-create a release; a GitHub release and a pub.dev publication are separate steps.
-
-The tag triggers verification in GitHub, but automatic publication is initially
-disabled. After CI succeeds, publish the exact tagged checkout once manually:
+The first version of a new package must be published manually before pub.dev
+allows automated publishing. This has already been completed for `legal`.
+For a new package, run these commands from the exact release checkout:
 
 ```sh
 fvm dart pub publish --dry-run
@@ -114,26 +89,21 @@ fvm dart pub publish
 ```
 
 Follow pub's account authorization prompts. The pub.dev account must be able to
-claim the package name `legal`. If using a verified publisher, transfer the
-package to it after initial publication using the package administration page.
+claim the package name. If using a verified publisher, transfer the package to
+it after initial publication using the package administration page.
 
-Then enable automated publishing for future releases:
+Configure automated publishing for subsequent releases:
 
 1. On pub.dev, open **Admin → Automated publishing** for `legal`. Authorize GitHub
-   repository `fischerscode/legal.dart`, tag pattern `v{{version}}`.
+   repository `fischerscode/legal.dart`, tag pattern `v{{version}}`. Enable
+   **Require GitHub Actions environment** with environment name `pub.dev`.
 2. In GitHub, create an environment named `pub.dev`. Restrict it to release tags;
    add required reviewers if desired. Releases await their approval when enabled.
-3. Under **Settings → Secrets and variables → Actions → Variables**, create the
-   repository variable `PUB_DEV_AUTOMATED_PUBLISHING` with value `true`.
-   This is a non-secret switch, not a credential. Leave it unset until steps 1–2
-   and the manual first publication are complete.
-4. Configure branch protection for `main` and require CI. No persistent Pub
+3. Configure branch protection for `main` and require CI. No persistent Pub
    credential or Pub credential secret is needed.
 
-Enabling the switch does not rerun old tags. Do not rerun publication for the
-already manually published initial version. First-publish authorization,
-repository creation/push, environment setup, and pub.dev settings are owner
-operations; the development task has not published it.
+After setup, every new matching release tag triggers verification and publication.
+Do not rerun publication for an already published version.
 
 ## Subsequent releases
 
@@ -156,18 +126,19 @@ pull/merge the branch. It does not push. Review the version and changelog before
 pushing. It also prints the prefilled GitHub release link for every release.
 
 Tag pushes matching `v*` in the canonical repository trigger verification.
-Publication also requires repository variable `PUB_DEV_AUTOMATED_PUBLISHING=true`. The validation job
-installs stable Dart, verifies an exact SemVer tag match with the pubspec version,
+The validation job installs stable Dart, verifies an exact SemVer tag match with
+the pubspec version,
 runs the same CI checks, and validates the package dry run. On success the official
 reusable `dart-lang/setup-dart/.github/workflows/publish.yml` publishes using a
-short-lived OIDC token in environment `pub.dev`. The workflow is pinned to a
-reviewed commit. Only the publish job receives `id-token: write`; other jobs have
+short-lived OIDC token in environment `pub.dev`. External actions and the reusable
+publish workflow use major-version tags (`actions/checkout@v7` and
+`dart-lang/setup-dart@v1`). Only the publish job receives `id-token: write`; other jobs have
 `contents: read`. There is no publishing on PRs, including fork PRs.
 
 Use `git push` and `git push origin <release-tag>` separately if preferred.
 `--follow-tags` pushes reachable annotated tags missing on the remote, including
-older ones. The first tag is pushed with automated publication still disabled; subsequent
-release tags publish after the repository switch is enabled. Avoid `git push --tags` if you have unrelated local tags.
+older ones. Push only new, unpublished release tags. Avoid `git push --tags` if
+you have unrelated local tags.
 
 Primary references: [Melos root packages](https://melos.invertase.dev/configuration/overview),
 [Conventional versioning](https://melos.invertase.dev/commands/version), and

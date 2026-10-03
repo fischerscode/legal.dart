@@ -98,7 +98,7 @@ Conventional versioning and package changelog generation stay native. A second
 workspace changelog is disabled to avoid writing twice to the same file.
 [pub.dev trusted publishing](https://dart.dev/tools/pub/automated-publishing)
 uses the official reusable workflow and a separate pre-publication tag validation
-job. Actions are pinned to reviewed revisions. No fork PR obtains publish rights.
+job. Actions use major-version tags. No fork PR obtains publish rights.
 
 Repository-quality inspiration: [fischerscode/lti.dart](https://github.com/fischerscode/lti.dart).
 This implementation retains a single root package rather than inheriting a

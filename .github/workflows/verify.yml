@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
-      - uses: dart-lang/setup-dart@92cfcc5b56b5f03d4418281fd5b0ae0dacbfd9fa
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
       - run: dart pub get --enforce-lockfile

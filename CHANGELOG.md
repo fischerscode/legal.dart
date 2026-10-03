@@ -1,3 +1,7 @@
+## 0.2.3
+
+ - **FEAT**: bundle native Dart runtime licenses with coverage reporting. ([245410d1](https://github.com/fischerscode/legal.dart/commit/245410d1295ee07798cc7ce1847f41a0ed5330c3))
+
 ## Unreleased
 
 - Embed an offline, versioned native runtime license catalog and add `--sdk-target`
